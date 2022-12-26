@@ -7,10 +7,11 @@ import com.mathsystem.api.graph.model.Graph;
 import com.mathsystem.api.graph.model.Vertex;
 import com.mathsystem.domain.graph.repository.GraphType;
 import com.mathsystem.domain.plugin.plugintype.GraphCharacteristic;
+import com.mathsystem.domain.plugin.plugintype.GraphProperty;
 
-public class TransitiveClosureCheck implements GraphCharacteristic {
+public class TransitiveClosureCheck implements GraphProperty {
     @Override
-    public Integer execute(Graph abstractGraph) {
+    public boolean execute(Graph abstractGraph) {
         Map<UUID, Map<UUID, Integer>> adjacencyMatrixSource = new HashMap<>();
         createAdjacencyMatrix(abstractGraph, adjacencyMatrixSource);
 
@@ -48,72 +49,29 @@ public class TransitiveClosureCheck implements GraphCharacteristic {
         Map<UUID, Map<UUID, Integer>> adjacencyMatrixLast = new HashMap<>();
         createAdjacencyMatrix(lastGraph, adjacencyMatrixLast);
 
-
         algorithmWarshall(oldGraphEdges.size() > lastGraphEdges.size() ? adjacencyMatrixLast : adjacencyMatrixOld);
 
-
-
-        int[][] matrixOld = new int[adjacencyMatrixOld.size()][adjacencyMatrixOld.size()];
-        int[][] matrixLast = new int[adjacencyMatrixLast.size()][adjacencyMatrixLast.size()];
         if(adjacencyMatrixOld.size() != adjacencyMatrixLast.size())     isTransitiveClosure = false;
         else {
-            int[] dataStr = new int[100];
-            int[] dataStr1 = new int[100];
-            int[] dataRow = new int[100];
-            int[] dataRow1 = new int[100];
-            for(int i = 0;i < 100;i++) {
-                    dataStr[i] = 0;
-                    dataStr1[i] = 0;
-                    dataRow1[i] = 0;
-                    dataRow[i] = 0;
-            }
-            int countRows1 = 0,countStr1 = 0, countRows2 = 0, countStr2 = 0;
-            for(UUID vertix1: adjacencyMatrixOld.keySet()) {
+            for(UUID vertix1 : adjacencyMatrixOld.keySet()) {
                 for(UUID vertix2: adjacencyMatrixOld.keySet()) {
-                    if(adjacencyMatrixOld.get(vertix1).get(vertix2) == 1) countStr1++;
-                    if(adjacencyMatrixOld.get(vertix2).get(vertix1) == 1) countRows1++;
+                    for(UUID vertix3: adjacencyMatrixLast.keySet()) {
+                        for(UUID vertix4: adjacencyMatrixLast.keySet()) {
+                            if(abstractGraph.getVertices().get(vertix3).getLabel().equals(abstractGraph.getVertices().get(vertix1).getLabel()) && abstractGraph.getVertices().get(vertix4).getLabel().equals(abstractGraph.getVertices().get(vertix2).getLabel())) {
+                                if(!adjacencyMatrixOld.get(vertix1).get(vertix2).equals(adjacencyMatrixLast.get(vertix3).get(vertix4))) {
+                                    isTransitiveClosure = false;
+                                    break;
+                                }
+                            }
+                        }
+                        if(!isTransitiveClosure)    break;
+                    }
+                    if(!isTransitiveClosure)    break;
                 }
-                dataStr[countStr1]++;
-                dataRow[countRows1]++;
-            }
-
-            for(UUID vertix1: adjacencyMatrixLast.keySet()) {
-                for(UUID vertix2: adjacencyMatrixLast.keySet()) {
-                    if(adjacencyMatrixLast.get(vertix1).get(vertix2) == 1) countStr2++;
-                    if(adjacencyMatrixLast.get(vertix2).get(vertix1) == 1) countRows2++;
-                }
-                dataStr1[countStr2]++;
-                dataRow1[countRows2]++;
-            }
-
-            int[] answer1 = new int[100];
-            int[] answer2 = new int[100];
-            int[] answer3 = new int[100];
-            int[] answer4 = new int[100];
-
-            for(int i = 0;i < 100;i++) {
-                answer1[i] = 0;
-                answer2[i] = 0;
-
-                answer3[i] = 0;
-
-                answer4[i] = 0;
-
-            }
-            for(int i = 0;i < 100;i++){
-
-                    answer1[dataStr[i]]++;
-                    answer2[dataRow[i]]++;
-                    answer3[dataStr1[i]]++;
-                    answer4[dataRow1[i]]++;
-
-            }
-            for(int i = 0;i < 100;i++) {
-
-                if(answer1[i] != answer3[i] || answer2[i] != answer4[i])    isTransitiveClosure = false;
+                if(!isTransitiveClosure)    break;
             }
         }
-        return isTransitiveClosure ? 1 : 0;
+        return isTransitiveClosure;
     }
 
 
@@ -138,24 +96,15 @@ public class TransitiveClosureCheck implements GraphCharacteristic {
 
     private void algorithmWarshall(Map <UUID, Map<UUID, Integer>> adjacencyMatrix) {
         int[][] bitArray = new int[adjacencyMatrix.size()][adjacencyMatrix.size()];
-        int[][] answer = new int[adjacencyMatrix.size()][adjacencyMatrix.size()];
         int countVertix1 = 0, countVertix2 = 0;
         for(UUID vertix1: adjacencyMatrix.keySet()) {
             countVertix2 = 0;
             for(UUID vertix2: adjacencyMatrix.keySet()) {
                 bitArray[countVertix1][countVertix2 % adjacencyMatrix.size()] = adjacencyMatrix.get(vertix1).get(vertix2) == 1 ? 1 : 0;
-                answer[countVertix1][countVertix2 % adjacencyMatrix.size()] = adjacencyMatrix.get(vertix1).get(vertix2) == 1 ? 1 : 0;
                 countVertix2++;
             }
             countVertix1++;
         }
-        for(int i = 0;i < adjacencyMatrix.size();i++) {
-            for(int j = 0;j < adjacencyMatrix.size();j++) {
-            }
-
-        }
-
-
             for(int i = 0;i < adjacencyMatrix.size();i++) {
                 for (int j = 0; j < adjacencyMatrix.size(); j++) {
                     if(bitArray[i][j] == 1) {
@@ -165,7 +114,15 @@ public class TransitiveClosureCheck implements GraphCharacteristic {
                     }
                 }
             }
-
+        for(int i = 0;i < adjacencyMatrix.size();i++) {
+            for (int j = 0; j < adjacencyMatrix.size(); j++) {
+                if(bitArray[i][j] == 1) {
+                    for(int k = 0;k < adjacencyMatrix.size();k++) {
+                        bitArray[i][k] = bitArray[i][k] | bitArray[j][k];
+                    }
+                }
+            }
+        }
 
         countVertix1 = 0;
         countVertix2 = 0;
@@ -183,7 +140,7 @@ public class TransitiveClosureCheck implements GraphCharacteristic {
             oldGraphVertices.put(vertex1ID, graph.getVertices().get(vertex1ID));
             vertexMark.put(vertex1ID, 1);
             for(UUID vertex2ID : graph.getVertices().keySet()) {
-                if(vertexMark.get(vertex2ID) != 1 && adjacencyMatrixSource.get(vertex1ID).get(vertex2ID) == 1 || adjacencyMatrixSource.get(vertex2ID).get(vertex1ID) == 1) {
+                if(vertexMark.get(vertex2ID) != 1 && (adjacencyMatrixSource.get(vertex1ID).get(vertex2ID) == 1 || adjacencyMatrixSource.get(vertex2ID).get(vertex1ID) == 1)) {
                     DFS(first, graph, vertex2ID, vertexMark, oldGraphVertices, adjacencyMatrixSource);
                 }
             }
