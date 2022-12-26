@@ -29,48 +29,50 @@ public class TransitiveClosureCheck implements GraphProperty {
         UUID start = new ArrayList<>(abstractGraph.getVertices().keySet()).get(0);
         DFS(true, abstractGraph, start, vertexMark, oldGraphVertices, adjacencyMatrixSource);
         searchEdges(abstractGraph, adjacencyMatrixSource, oldGraphVertices, oldGraphEdges);
-
-
         Graph oldGraph = new Graph(abstractGraph.getDirectType(), oldGraphVertices.size(), oldGraphEdges.size(), oldGraphVertices, oldGraphEdges);
-        Map<UUID, Map<UUID, Integer>> adjacencyMatrixOld = new HashMap<>();
-        createAdjacencyMatrix(oldGraph, adjacencyMatrixOld);
-        UUID otherStart = null;
 
-        for(UUID vertex: abstractGraph.getVertices().keySet()) {
-            if(oldGraphVertices.get(vertex) == null && abstractGraph.getVertices().get(vertex).getLabel().equals(abstractGraph.getVertices().get(start).getLabel())) {
-                otherStart = vertex;
-                break;
+        if(oldGraph.getVertices().size() != abstractGraph.getVertices().size()) {
+            Map<UUID, Map<UUID, Integer>> adjacencyMatrixOld = new HashMap<>();
+            createAdjacencyMatrix(oldGraph, adjacencyMatrixOld);
+            UUID otherStart = null;
+
+            for(UUID vertex: abstractGraph.getVertices().keySet()) {
+                if(oldGraphVertices.get(vertex) == null && abstractGraph.getVertices().get(vertex).getLabel().equals(abstractGraph.getVertices().get(start).getLabel())) {
+                    otherStart = vertex;
+                    break;
+                }
             }
-        }
-        DFS(false, abstractGraph, otherStart, vertexMark, lastGraphVertices, adjacencyMatrixSource);
-        searchEdges(abstractGraph, adjacencyMatrixSource, lastGraphVertices, lastGraphEdges);
+            DFS(false, abstractGraph, otherStart, vertexMark, lastGraphVertices, adjacencyMatrixSource);
+            searchEdges(abstractGraph, adjacencyMatrixSource, lastGraphVertices, lastGraphEdges);
+            Graph lastGraph = new Graph(abstractGraph.getDirectType(), lastGraphVertices.size(), lastGraphEdges.size(), lastGraphVertices, lastGraphEdges);
+            if(!(oldGraph.getVertices().size() + lastGraph.getVertices().size() == abstractGraph.getVertices().size()))     isTransitiveClosure = false;
+            Map<UUID, Map<UUID, Integer>> adjacencyMatrixLast = new HashMap<>();
+            createAdjacencyMatrix(lastGraph, adjacencyMatrixLast);
 
-        Graph lastGraph = new Graph(abstractGraph.getDirectType(), lastGraphVertices.size(), lastGraphEdges.size(), lastGraphVertices, lastGraphEdges);
-        Map<UUID, Map<UUID, Integer>> adjacencyMatrixLast = new HashMap<>();
-        createAdjacencyMatrix(lastGraph, adjacencyMatrixLast);
+            algorithmWarshall(oldGraphEdges.size() > lastGraphEdges.size() ? adjacencyMatrixLast : adjacencyMatrixOld);
 
-        algorithmWarshall(oldGraphEdges.size() > lastGraphEdges.size() ? adjacencyMatrixLast : adjacencyMatrixOld);
-
-        if(adjacencyMatrixOld.size() != adjacencyMatrixLast.size())     isTransitiveClosure = false;
-        else {
-            for(UUID vertix1 : adjacencyMatrixOld.keySet()) {
-                for(UUID vertix2: adjacencyMatrixOld.keySet()) {
-                    for(UUID vertix3: adjacencyMatrixLast.keySet()) {
-                        for(UUID vertix4: adjacencyMatrixLast.keySet()) {
-                            if(abstractGraph.getVertices().get(vertix3).getLabel().equals(abstractGraph.getVertices().get(vertix1).getLabel()) && abstractGraph.getVertices().get(vertix4).getLabel().equals(abstractGraph.getVertices().get(vertix2).getLabel())) {
-                                if(!adjacencyMatrixOld.get(vertix1).get(vertix2).equals(adjacencyMatrixLast.get(vertix3).get(vertix4))) {
-                                    isTransitiveClosure = false;
-                                    break;
+            if(adjacencyMatrixOld.size() != adjacencyMatrixLast.size())     isTransitiveClosure = false;
+            else {
+                for(UUID vertix1 : adjacencyMatrixOld.keySet()) {
+                    for(UUID vertix2: adjacencyMatrixOld.keySet()) {
+                        for(UUID vertix3: adjacencyMatrixLast.keySet()) {
+                            for(UUID vertix4: adjacencyMatrixLast.keySet()) {
+                                if(abstractGraph.getVertices().get(vertix3).getLabel().equals(abstractGraph.getVertices().get(vertix1).getLabel()) && abstractGraph.getVertices().get(vertix4).getLabel().equals(abstractGraph.getVertices().get(vertix2).getLabel())) {
+                                    if(!adjacencyMatrixOld.get(vertix1).get(vertix2).equals(adjacencyMatrixLast.get(vertix3).get(vertix4))) {
+                                        isTransitiveClosure = false;
+                                        break;
+                                    }
                                 }
                             }
+                            if(!isTransitiveClosure)    break;
                         }
                         if(!isTransitiveClosure)    break;
                     }
                     if(!isTransitiveClosure)    break;
                 }
-                if(!isTransitiveClosure)    break;
             }
-        }
+        } else  isTransitiveClosure = false;
+
         return isTransitiveClosure;
     }
 
